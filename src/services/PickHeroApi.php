@@ -243,22 +243,22 @@ class PickHeroApi extends Component
     /**
      * Ensure a customer exists in PickHero for the given order
      * 
-     * Looks up the customer by email. If not found, creates a new customer
-     * using the order's shipping and billing addresses.
+     * Looks up the customer by external_id (Craft user ID).
+     * If not found, creates a new customer using the order's shipping and billing addresses.
      * 
-     * @return array|null The customer data, or null if no email on order
+     * @return array|null The customer data, or null if order has no user
      * @throws PickHeroApiException
      */
     protected function ensureCustomerExists(Order $order): ?array
     {
-        $email = $order->getEmail();
+        $user = $order->getUser();
         
-        if (empty($email)) {
+        if (!$user) {
             return null;
         }
         
-        // Try to find existing customer by email
-        $customer = $this->getCustomers()->findByEmail($email);
+        // Try to find existing customer by external_id (Craft user ID)
+        $customer = $this->getCustomers()->findByExternalId((string) $user->id);
         
         if ($customer !== null) {
             return $customer;
@@ -286,6 +286,12 @@ class PickHeroApi extends Component
             'email' => $order->getEmail(),
             'name' => $this->extractName($primaryAddress),
         ];
+        
+        // Add external_id from Craft user if available
+        $user = $order->getUser();
+        if ($user) {
+            $data['external_id'] = (string) $user->id;
+        }
         
         // Add contact name if organization
         $contactName = $this->extractContactName($primaryAddress);
