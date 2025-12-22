@@ -251,14 +251,14 @@ class PickHeroApi extends Component
      */
     protected function ensureCustomerExists(Order $order): ?array
     {
-        $user = $order->getUser();
+        $customerId = $order->getCustomerId();
         
-        if (!$user) {
+        if (!$customerId) {
             return null;
         }
         
         // Try to find existing customer by external_id (Craft user ID)
-        $customer = $this->getCustomers()->findByExternalId((string) $user->id);
+        $customer = $this->getCustomers()->findByExternalId((string) $customerId);
         
         if ($customer !== null) {
             return $customer;
@@ -288,9 +288,9 @@ class PickHeroApi extends Component
         ];
         
         // Add external_id from Craft user if available
-        $user = $order->getUser();
-        if ($user) {
-            $data['external_id'] = (string) $user->id;
+        $customerId = $order->getCustomerId();
+        if ($customerId) {
+            $data['external_id'] = (string) $customerId;
         }
         
         // Add contact name if organization
