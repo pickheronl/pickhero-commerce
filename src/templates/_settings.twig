@@ -1,0 +1,297 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set fullPageForm = true %}
+
+{% set title = "{pluginName} Settings"|t('commerce-pickhero', {pluginName: plugin.name}) %}
+{% set docTitle = title ~ ' - ' ~ "Plugins"|t('app') %}
+{% set crumbs = [
+    { label: "Settings"|t('app'), url: url('settings') },
+    { label: "Plugins"|t('app'), url: url('settings/plugins') }
+] %}
+{% set selectedSubnavItem = 'settings' %}
+
+{% set tabs = [
+    { label: 'Connection'|t('commerce-pickhero'), url: '#settings-connection' },
+] %}
+{% if settings.apiBaseUrl is not empty and settings.apiToken is not empty %}
+    {% set tabs = tabs|merge([
+        { label: 'Orders'|t('commerce-pickhero'), url: '#settings-orders' },
+        { label: 'Products'|t('commerce-pickhero'), url: '#settings-products' },
+        { label: 'Webhooks'|t('commerce-pickhero'), url: '#settings-webhooks' },
+    ]) %}
+{% endif %}
+
+{% block actionButton %}
+    {% if allowAdminChanges %}
+        {{ parent() }}
+    {% endif %}
+{% endblock actionButton %}
+
+{% block content %}
+    {{ actionInput('plugins/save-plugin-settings') }}
+    {{ hiddenInput('pluginHandle', plugin.handle) }}
+    {{ redirectInput('commerce-pickhero/settings') }}
+
+    {% if not allowAdminChanges %}
+        <div class="pane">
+            <p class="warning">
+                {{ "Administrative changes are restricted in this environment. Some settings are disabled."|t('commerce-pickhero') }}
+            </p>
+        </div>
+    {% endif %}
+
+    {% namespace 'settings' %}
+    <div id="fields">
+        <div>
+            {# Connection Tab #}
+            <div id="connection">
+                {{ forms.autosuggestField({
+                    label:        "API Base URL"|t('commerce-pickhero'),
+                    instructions: "The PickHero API endpoint URL (e.g., https://your-instance.pickhero.nl/api)"|t('commerce-pickhero'),
+                    id:           'apiBaseUrl',
+                    name:         'apiBaseUrl',
+                    suggestEnvVars: true,
+                    value:        settings.apiBaseUrl,
+                    errors:       settings.getErrors('apiBaseUrl'),
+                    disabled:     not allowAdminChanges,
+                    placeholder:  'https://demo.pickhero.nl/api',
+                }) }}
+                
+                {{ forms.autosuggestField({
+                    label:        "API Token"|t('commerce-pickhero'),
+                    instructions: "Your PickHero API bearer token. Generate this in your PickHero account settings."|t('commerce-pickhero'),
+                    id:           'apiToken',
+                    name:         'apiToken',
+                    suggestEnvVars: true,
+                    value:        settings.apiToken,
+                    errors:       settings.getErrors('apiToken'),
+                    disabled:     not allowAdminChanges,
+                }) }}
+
+                <hr>
+
+                {{ forms.textField({
+                    label:        "Plugin Name"|t('commerce-pickhero'),
+                    instructions: "Customize how the plugin appears in the Control Panel sidebar."|t('commerce-pickhero'),
+                    id:           'displayName',
+                    name:         'displayName',
+                    value:        settings.displayName,
+                    errors:       settings.getErrors('displayName'),
+                    disabled:     not allowAdminChanges,
+                    placeholder:  'PickHero',
+                }) }}
+            </div>
+
+            {# Orders Tab #}
+            <div id="orders" class="hidden">
+                {{ forms.lightswitchField({
+                    label:        "Enable Order Sync"|t('commerce-pickhero'),
+                    instructions: "Automatically send orders to PickHero when their status changes."|t('commerce-pickhero'),
+                    id:           'pushOrders',
+                    name:         'pushOrders',
+                    on:           settings.pushOrders,
+                    disabled:     not allowAdminChanges,
+                }) }}
+                
+                {{ forms.multiselectField({
+                    label:        "Submit on Status Change"|t('commerce-pickhero'),
+                    instructions: "Orders will be sent to PickHero when they reach one of these statuses."|t('commerce-pickhero'),
+                    id:           'orderStatusToPush',
+                    name:         'orderStatusToPush',
+                    options:      settings.getOrderStatusOptions(),
+                    values:       settings.orderStatusToPush,
+                    errors:       settings.getErrors('orderStatusToPush'),
+                    class:        'selectize fullwidth',
+                    disabled:     not allowAdminChanges,
+                }) }}
+                
+                {{ forms.multiselectField({
+                    label:        "Process on Status Change"|t('commerce-pickhero'),
+                    instructions: "Orders will be marked for processing (stock allocation + picklist) when they reach one of these statuses."|t('commerce-pickhero'),
+                    id:           'orderStatusToProcess',
+                    name:         'orderStatusToProcess',
+                    options:      settings.getOrderStatusOptions(),
+                    values:       settings.orderStatusToProcess,
+                    errors:       settings.getErrors('orderStatusToProcess'),
+                    class:        'selectize fullwidth',
+                    disabled:     not allowAdminChanges,
+                }) }}
+
+                <hr>
+
+                {{ forms.checkboxField({
+                    label:        "Include line item prices"|t('commerce-pickhero'),
+                    instructions: "Send product prices along with order line items."|t('commerce-pickhero'),
+                    id:           'pushPrices',
+                    name:         'pushPrices',
+                    checked:      settings.pushPrices,
+                    disabled:     not allowAdminChanges,
+                }) }}
+
+                {{ forms.checkboxField({
+                    label:        "Auto-create missing products"|t('commerce-pickhero'),
+                    instructions: "Create products in PickHero if they don't exist when submitting orders."|t('commerce-pickhero'),
+                    id:           'createMissingProducts',
+                    name:         'createMissingProducts',
+                    checked:      settings.createMissingProducts,
+                    disabled:     not allowAdminChanges,
+                }) }}
+            </div>
+
+            {# Products Tab #}
+            <div id="products" class="hidden">
+                {{ forms.lightswitchField({
+                    label:        "Enable Stock Sync"|t('commerce-pickhero'),
+                    instructions: "Allow syncing product stock levels from PickHero."|t('commerce-pickhero'),
+                    id:           'syncStock',
+                    name:         'syncStock',
+                    on:           settings.syncStock,
+                    disabled:     not allowAdminChanges,
+                }) }}
+            </div>
+
+            {# Webhooks Tab #}
+            <div id="webhooks" class="hidden">
+                {{ forms.lightswitchField({
+                    label:        "Sync Order Status"|t('commerce-pickhero'),
+                    instructions: "Update Craft order status when order status changes in PickHero."|t('commerce-pickhero'),
+                    id:           'syncOrderStatus',
+                    name:         'syncOrderStatus',
+                    on:           settings.syncOrderStatus,
+                    disabled:     not allowAdminChanges,
+                }) }}
+
+                <div id="orderStatusWebhookToggle" class="field webhook-toggle" data-hook-type="order_status_changed">
+                    <div class="heading">
+                        <label>{{ "Order Status Webhook"|t('commerce-pickhero') }}</label>
+                    </div>
+                    <div class="instructions">
+                        <p>{{ "Register a webhook to receive order status change notifications from PickHero."|t('commerce-pickhero') }}</p>
+                    </div>
+                    <div class="input ltr" style="display: flex; align-items: center; gap: 10px;">
+                        <button type="button" class="lightswitch webhook-switch off" role="checkbox" aria-checked="false" tabindex="0" disabled>
+                            <div class="lightswitch-container">
+                                <div class="handle"></div>
+                            </div>
+                        </button>
+                        <span class="webhook-status-text">{{ "Loading..."|t('commerce-pickhero') }}</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                {{ forms.editableTableField({
+                    label: 'Status Mapping'|t('commerce-pickhero'),
+                    instructions: 'Map PickHero shipment events to Craft order status changes.'|t('commerce-pickhero'),
+                    id: 'mapping',
+                    name: 'orderStatusMapping',
+                    cols: {
+                        pickhero: {
+                            type: "select",
+                            options: settings.getPickHeroStatuses(),
+                            heading: 'PickHero Status'|t('commerce-pickhero')
+                        },
+                        changeTo: {
+                            type: 'select',
+                            options: settings.getOrderStatusOptions(),
+                            heading: 'Set Craft Status To'|t('commerce-pickhero')
+                        },
+                    },
+                    rows: settings.orderStatusMapping,
+                    static:     not allowAdminChanges,
+                    allowAdd: true,
+                    allowDelete: true,
+                    allowReorder: true,
+                }) }}
+            </div>
+
+        </div>
+    </div>
+    {% endnamespace %}
+
+
+    {% if false %}<script>{% endif %}
+    {% js %}
+        $('#settings-orderStatusToPush, #settings-orderStatusToProcess').selectize({
+            plugins: ['remove_button'],
+            dropdownParent: 'body'
+        });
+    
+        $('.webhook-toggle').each(function() {
+            var $container = $(this);
+            var type = $container.data('hook-type');
+            var $switch = $container.find('.webhook-switch');
+            var $statusText = $container.find('.webhook-status-text');
+            var isActive = false;
+            var isLoading = false;
+            
+            var updateUI = function(active, statusMessage) {
+                isActive = active;
+                $switch.attr('aria-checked', active ? 'true' : 'false');
+                if (active) {
+                    $switch.removeClass('off').addClass('on');
+                } else {
+                    $switch.removeClass('on').addClass('off');
+                }
+                $statusText.html('<span class="status ' + (active ? 'live' : '') + '"></span> ' + statusMessage);
+                $switch.prop('disabled', false);
+                isLoading = false;
+            };
+            
+            var setLoading = function() {
+                isLoading = true;
+                $switch.prop('disabled', true);
+                $statusText.text('{{ "Processing..."|t('commerce-pickhero') }}');
+            };
+            
+            // Load initial state
+            $.ajax('{{ actionUrl('commerce-pickhero/admin/webhooks/get-hook-status') }}', { data: {type: type}})
+                .done(function(data) {
+                    updateUI(data.status === 'active', data.statusText);
+                })
+                .fail(function() {
+                    updateUI(false, '{{ "Failed to load status"|t('commerce-pickhero') }}');
+                });
+
+            // Handle toggle
+            $switch.on('click', function(e) {
+                e.preventDefault();
+                
+                if (isLoading) return;
+                
+                setLoading();
+                
+                var data = {};
+                data['type'] = type;
+                data[Craft.csrfTokenName] = Craft.csrfTokenValue;
+                
+                var url = isActive 
+                    ? '{{ actionUrl('commerce-pickhero/admin/webhooks/remove') }}'
+                    : '{{ actionUrl('commerce-pickhero/admin/webhooks/refresh') }}';
+                
+                $.ajax(url, { method: 'post', data: data })
+                    .done(function(data) {
+                        updateUI(data.status === 'active', data.statusText);
+                    })
+                    .fail(function() {
+                        updateUI(isActive, '{{ "Action failed"|t('commerce-pickhero') }}');
+                    });
+            });
+        });
+    {% endjs %}
+    {% if false %}</script>{% endif %}
+
+    {# Selectize styling fix #}
+    {% if false %}<style>{% endif %}
+    {% css %}
+        body .selectize-dropdown-content > div[data-value="new"]:before {
+            content: '';
+            margin-right: 0;
+        }
+        body .selectize-dropdown-content > div[data-value="new"]:after {
+            content: '';
+        }
+    {% endcss %}
+    {% if false %}</style>{% endif %}
+{% endblock content %}

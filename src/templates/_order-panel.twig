@@ -1,0 +1,82 @@
+
+<div class="order-meta-container">
+    <div class="meta read-only">
+        <h4>{{ "PickHero"|t('commerce-pickhero') }}</h4>
+
+        <div class="data">
+            <h5 class="heading">{{ "PickHero Order"|t('commerce-pickhero') }}</h5>
+            <p class="value">
+                {% if syncStatus.pickheroOrderId %}
+                    <span class="status live"></span>
+                    {{ syncStatus.pickheroOrderNumber|default(syncStatus.pickheroOrderId) }}
+                {% else %}
+                    <span class="status"></span>
+                    {{ "Not submitted"|t('commerce-pickhero') }}
+                {% endif %}
+            </p>
+        </div>
+
+        {% if syncStatus and syncStatus.pickheroOrderId %}
+            <div class="data">
+                <h5 class="heading">{{ "Processing Status"|t('commerce-pickhero') }}</h5>
+                <p class="value">
+                    {% if syncStatus.processed %}
+                        <span class="status live"></span> {{ "Processed"|t('commerce-pickhero') }}
+                    {% elseif syncStatus.stockAllocated %}
+                        <span class="status pending"></span> {{ "Stock Allocated"|t('commerce-pickhero') }}
+                    {% else %}
+                        <span class="status"></span> {{ "Pending"|t('commerce-pickhero') }}
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+
+        <div class="pickhero-actions" style="margin-top: 12px;">
+            {% if order.isCompleted %}
+                {% if currentUser.can('commerce-pickhero-pushOrders') %}
+                    {% if not syncStatus or not syncStatus.pushed %}
+                        <button type="button" class="pickhero-order-action btn small" data-action="commerce-pickhero/admin/orders/push" data-order-id="{{ order.id }}">
+                            {{ "Send to PickHero"|t('commerce-pickhero') }}
+                        </button>
+                    {% elseif syncStatus and syncStatus.pickheroOrderId and not syncStatus.processed %}
+                        <button type="button" class="pickhero-order-action btn small" data-action="commerce-pickhero/admin/orders/push" data-order-id="{{ order.id }}">
+                            {{ "Resubmit"|t('commerce-pickhero') }}
+                        </button>
+                        <button type="button" class="pickhero-order-action btn small submit" data-action="commerce-pickhero/admin/orders/process" data-order-id="{{ order.id }}">
+                            {{ "Process Order"|t('commerce-pickhero') }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+{% if false %}<script>{% endif %}
+{% js %}
+(() => {
+    $('.pickhero-order-action').click(function() {
+        var $form = Craft.createForm().attr('target', $(this).data('target')).appendTo(Garnish.$bod);
+        $(Craft.getCsrfInput()).appendTo($form);
+        $('<input/>', {
+            type: 'hidden',
+            name: 'action',
+            value: $(this).data('action')
+        }).appendTo($form);
+        $('<input/>', {
+            type: 'hidden',
+            name: 'orderId',
+            value: $(this).data('order-id')
+        }).appendTo($form);
+        $('<input/>', {
+            type: 'submit',
+            value: 'Submit'
+        }).appendTo($form);
+        $form.submit();
+        $form.remove();
+    });
+})();
+{% endjs %}
+{% if false %}</script>{% endif %}
+

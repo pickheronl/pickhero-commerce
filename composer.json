@@ -1,0 +1,47 @@
+{
+    "name": "pickhero/craft-commerce",
+    "description": "Connect your Craft Commerce store to PickHero WMS for streamlined warehouse management and order fulfillment.",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.0",
+        "craftcms/cms": "^4.0.0|^5.0.0",
+        "craftcms/commerce": "^4.0.0|^5.0.0",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+          "pickhero\\commerce\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "commerce-pickhero",
+        "name": "Commerce PickHero",
+        "developer": "PickHero",
+        "developerUrl": "https://pickhero.nl/",
+        "hasCpSettings": true,
+        "hasCpSection": true,
+        "class": "pickhero\\commerce\\CommercePickheroPlugin",
+        "documentationUrl": "https://pickhero.nl/docs/craft-commerce"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require-dev": {
+        "craftcms/phpstan": "dev-main",
+        "craftcms/ecs": "dev-main"
+    },
+    "scripts": {
+        "phpstan": "phpstan --memory-limit=1G",
+        "check-cs": "ecs check --ansi",
+        "fix-cs": "ecs check --ansi --fix"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        },
+        "platform": {
+            "php": "8.0"
+        }
+    }
+}
