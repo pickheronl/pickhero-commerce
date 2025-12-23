@@ -11,6 +11,7 @@ use craft\elements\Address;
 use pickhero\commerce\CommercePickheroPlugin;
 use pickhero\commerce\dto\ProductData;
 use pickhero\commerce\errors\PickHeroApiException;
+use pickhero\commerce\events\AddressEvent;
 use pickhero\commerce\events\OrderLineItemsEvent;
 use pickhero\commerce\http\PickHeroClient;
 use pickhero\commerce\http\resources\CustomersResource;
@@ -42,6 +43,11 @@ class PickHeroApi extends Component
      * Event triggered to allow modification of line items before pushing to PickHero
      */
     public const EVENT_MODIFY_ORDER_LINE_ITEMS = 'modifyOrderLineItems';
+
+    /**
+     * Event triggered to allow modification of address data before pushing to PickHero
+     */
+    public const EVENT_TRANSFORM_ADDRESS = 'transformAddress';
 
     private ?Settings $settings = null;
     private ?PickHeroClient $client = null;
@@ -453,9 +459,9 @@ class PickHeroApi extends Component
     /**
      * Transform a Craft address to PickHero address payload format
      */
-    protected function transformAddressToPayload(Address $address): array
+    protected function transformAddressToPayload(Address $address, string $type = AddressEvent::TYPE_DELIVERY): array
     {
-        return array_filter([
+        $payload = array_filter([
             'name' => $this->extractName($address),
             'contact_name' => $this->extractContactName($address),
             'address' => $address->getAddressLine1(),
@@ -465,6 +471,16 @@ class PickHeroApi extends Component
             'region' => $address->getAdministrativeArea(),
             'country' => $address->getCountryCode(),
         ], fn($value) => $value !== null && $value !== '');
+
+        // Allow modification of address payload via event
+        $event = new AddressEvent([
+            'address' => $address,
+            'type' => $type,
+            'payload' => $payload,
+        ]);
+        $this->trigger(self::EVENT_TRANSFORM_ADDRESS, $event);
+
+        return $event->payload;
     }
 
     /**
