@@ -149,6 +149,37 @@
                     on:           settings.syncStock,
                     disabled:     not allowAdminChanges,
                 }) }}
+
+                <hr>
+
+                <h2>{{ "Product Field Mapping"|t('commerce-pickhero') }}</h2>
+                <p class="light">{{ "Map Craft variant or product fields to PickHero product fields. For product-level fields, prefix with 'product.' (e.g., product.brandField)."|t('commerce-pickhero') }}</p>
+
+                {{ forms.editableTableField({
+                    label: 'Field Mappings'|t('commerce-pickhero'),
+                    instructions: 'Map your custom Craft fields to PickHero product fields. Enter the field handle exactly as defined in Craft.'|t('commerce-pickhero'),
+                    id: 'productFieldMapping',
+                    name: 'productFieldMapping',
+                    cols: {
+                        pickheroField: {
+                            type: 'select',
+                            options: settings.getPickHeroProductFields(),
+                            heading: 'PickHero Field'|t('commerce-pickhero'),
+                            thin: true,
+                        },
+                        craftField: {
+                            type: 'singleline',
+                            heading: 'Craft Field Handle'|t('commerce-pickhero'),
+                            placeholder: 'e.g., ean or product.productImage',
+                            info: 'The field handle on the variant, or "product.fieldHandle" for product fields.',
+                        },
+                    },
+                    rows: settings.productFieldMapping,
+                    static: not allowAdminChanges,
+                    allowAdd: true,
+                    allowDelete: true,
+                    allowReorder: true,
+                }) }}
             </div>
 
             {# Webhooks Tab #}

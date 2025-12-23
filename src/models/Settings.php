@@ -71,6 +71,13 @@ class Settings extends Model
     public string $displayName = '';
 
     /**
+     * Mapping of PickHero product fields to Craft variant field handles
+     * 
+     * Example: ['barcode' => 'ean', 'image_url' => 'productImage']
+     */
+    public array $productFieldMapping = [];
+
+    /**
      * @inheritdoc
      */
     public function rules(): array
@@ -147,5 +154,23 @@ class Settings extends Model
     public function getApiToken(): string
     {
         return App::parseEnv($this->apiToken) ?: '';
+    }
+
+    /**
+     * Get available PickHero product fields for mapping (used in settings UI)
+     */
+    public function getPickHeroProductFields(): array
+    {
+        return [
+            ['value' => 'gtin', 'label' => 'GTIN (Barcode/EAN/UPC)'],
+            ['value' => 'image_url', 'label' => 'Image URL'],
+            ['value' => 'description', 'label' => 'Description'],
+            ['value' => 'brand', 'label' => 'Brand'],
+            ['value' => 'category', 'label' => 'Category'],
+            ['value' => 'supplier', 'label' => 'Supplier'],
+            ['value' => 'supplier_code', 'label' => 'Supplier Code'],
+            ['value' => 'country_of_origin', 'label' => 'Country of Origin'],
+            ['value' => 'hs_code', 'label' => 'HS Code'],
+        ];
     }
 }

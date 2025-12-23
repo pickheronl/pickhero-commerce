@@ -6,6 +6,7 @@ use Craft;
 use craft\commerce\elements\Variant;
 use craft\helpers\App;
 use pickhero\commerce\CommercePickheroPlugin;
+use pickhero\commerce\dto\ProductData;
 use pickhero\commerce\errors\PickHeroApiException;
 use pickhero\commerce\models\Settings;
 use pickhero\commerce\services\Log;
@@ -224,104 +225,50 @@ class ExportProductsController extends Controller
      */
     protected function processVariant(Variant $variant): string
     {
-        $sku = $variant->sku;
-        
-        if (empty($sku)) {
+        if (empty($variant->sku)) {
             return 'skipped';
         }
         
         // Check if product exists in PickHero
-        $existingProduct = null;
-        if ($this->onlyNew || $this->update) {
-            try {
-                $existingProduct = $this->api->getProducts()->findByProductCode($sku);
-            } catch (PickHeroApiException $e) {
-                if (!$e->isNotFound()) {
-                    throw $e;
-                }
-            }
-        }
-
+        $existingProduct = $this->findExistingProduct($variant);
         
         // Skip if exists and we only want new
         if ($this->onlyNew && $existingProduct !== null) {
             return 'skipped';
         }
         
-        // Build product data
-        $productData = $this->buildProductData($variant);
+        $productData = ProductData::fromVariant($variant);
         
         if ($this->dryRun) {
-            $this->log->trace("Would export product '{$sku}': " . json_encode($productData));
+            $this->log->trace("Would export product '{$variant->sku}': " . json_encode($productData->toArray()));
             return $existingProduct ? 'updated' : 'created';
         }
 
-        if ($existingProduct !== null && $this->update) {
-            // Update existing product
-            $this->api->getProducts()->update($existingProduct['id'], $productData);
-            $this->log->trace("Updated product '{$sku}' in PickHero.");
+        if ($existingProduct !== null) {
+            $this->api->getProducts()->update($existingProduct['id'], $productData->toUpdateArray());
+            $this->log->trace("Updated product '{$variant->sku}' in PickHero.");
             return 'updated';
-        } elseif ($existingProduct === null) {
-            // Create new product
-            $this->api->getProducts()->create($productData);
-            $this->log->trace("Created product '{$sku}' in PickHero.");
-            return 'created';
         }
         
-        return 'skipped';
+        $this->api->getProducts()->create($productData->toArray());
+        $this->log->trace("Created product '{$variant->sku}' in PickHero.");
+        return 'created';
     }
 
     /**
-     * Build the product data array for PickHero API
+     * Find an existing product in PickHero by external_id (variant ID)
      */
-    protected function buildProductData(Variant $variant): array
+    protected function findExistingProduct(Variant $variant): ?array
     {
-        $product = $variant->getProduct();
-        
-        $data = [
-            'external_id' => (string) $variant->id,
-            'product_code' => $variant->sku,
-            'name' => $this->buildProductName($variant),
-            'price' => (float) ($variant->price ?? 0),
-        ];
-        
-        // Add optional fields if available
-        if ($variant->weight) {
-            $data['weight'] = (int) $variant->weight;
+        try {
+            return $this->api->getProducts()->findByExternalId((string) $variant->id);
+        } catch (PickHeroApiException $e) {
+            if (!$e->isNotFound()) {
+                throw $e;
+            }
         }
         
-        if ($variant->length) {
-            $data['length'] = (int) $variant->length;
-        }
-        
-        if ($variant->width) {
-            $data['width'] = (int) $variant->width;
-        }
-        
-        if ($variant->height) {
-            $data['height'] = (int) $variant->height;
-        }
-        
-        return $data;
-    }
-
-    /**
-     * Build a descriptive product name
-     */
-    protected function buildProductName(Variant $variant): string
-    {
-        $product = $variant->getProduct();
-        
-        if (!$product) {
-            return $variant->title ?? $variant->sku;
-        }
-        
-        // If variant has its own title different from product, combine them
-        if ($variant->title && $variant->title !== $product->title) {
-            return "{$product->title} - {$variant->title}";
-        }
-        
-        return $product->title ?? $variant->sku;
+        return null;
     }
 }
 
