@@ -6,8 +6,10 @@ use Craft;
 use craft\base\Component;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
+use craft\commerce\elements\Variant;
 use craft\elements\Address;
 use pickhero\commerce\CommercePickheroPlugin;
+use pickhero\commerce\dto\ProductData;
 use pickhero\commerce\errors\PickHeroApiException;
 use pickhero\commerce\events\OrderLineItemsEvent;
 use pickhero\commerce\http\PickHeroClient;
@@ -154,22 +156,24 @@ class PickHeroApi extends Component
     }
 
     /**
-     * Ensure products exist in PickHero, creating any that are missing
+     * Ensure products exist in PickHero, creating or updating as needed
      * 
      * @param PurchasableInterface[] $purchasables
      */
     public function ensureProductsExist(array $purchasables): void
     {
         foreach ($purchasables as $purchasable) {
-            $existing = $this->getProducts()->findByProductCode($purchasable->getSku());
+            if (!$purchasable instanceof Variant) {
+                continue;
+            }
             
-            if ($existing === null) {
-                $this->getProducts()->create([
-                    'external_id' => (string) $purchasable->getId(),
-                    'product_code' => $purchasable->getSku(),
-                    'name' => $purchasable->getDescription(),
-                    'price' => (float) $purchasable->getPrice(),
-                ]);
+            $existing = $this->getProducts()->findByExternalId((string) $purchasable->getId());
+            $productData = ProductData::fromVariant($purchasable);
+            
+            if ($existing !== null) {
+                $this->getProducts()->update($existing['id'], $productData->toUpdateArray());
+            } else {
+                $this->getProducts()->create($productData->toArray());
             }
         }
     }
@@ -198,26 +202,32 @@ class PickHeroApi extends Component
         $orderPayload['rows'] = [];
         
         foreach ($this->collectLineItems($order) as $lineItem) {
-            // Lookup product in PickHero
-            $product = $this->getProducts()->findByProductCode($lineItem->getSku());
+            $purchasable = $lineItem->getPurchasable();
+            
+            // Only variants are supported
+            if (!$purchasable instanceof Variant) {
+                continue;
+            }
+            
+            // Lookup product in PickHero by external_id (purchasable ID)
+            $product = $this->getProducts()->findByExternalId((string) $purchasable->id);
+            $productData = ProductData::fromVariant($purchasable);
+            
+            if ($product !== null) {
+                // Update existing product
+                $response = $this->getProducts()->update($product['id'], $productData->toUpdateArray());
+                $product = $response['data'] ?? $product;
+            } elseif ($autoCreateProducts) {
+                // Create new product
+                $response = $this->getProducts()->create($productData->toArray());
+                $product = $response['data'] ?? null;
+            }
             
             if ($product === null) {
-                if ($autoCreateProducts) {
-                    $response = $this->getProducts()->create([
-                        'external_id' => (string) $lineItem->purchasableId,
-                        'product_code' => $lineItem->getSku(),
-                        'name' => $lineItem->getDescription(),
-                        'price' => (float) $lineItem->getPrice(),
-                    ]);
-                    $product = $response['data'] ?? null;
-                }
-                
-                if ($product === null) {
-                    throw new PickHeroApiException(
-                        "Product '{$lineItem->getSku()}' does not exist in PickHero.",
-                        404
-                    );
-                }
+                throw new PickHeroApiException(
+                    "Product '{$lineItem->getSku()}' does not exist in PickHero.",
+                    404
+                );
             }
             
             $rowPayload = [
