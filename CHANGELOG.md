@@ -1,3 +1,8 @@
+## 1.1.1 - 2025-12-23
+
+### Added
+- Added event that allows address manupulation
+- 
 ## 1.1.0 - 2025-12-23
 
 ### Added
