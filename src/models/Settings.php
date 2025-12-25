@@ -171,6 +171,7 @@ class Settings extends Model
             ['value' => 'supplier_code', 'label' => 'Supplier Code'],
             ['value' => 'country_of_origin', 'label' => 'Country of Origin'],
             ['value' => 'hs_code', 'label' => 'HS Code'],
+            ['value' => 'digital', 'label' => 'Digital'],
         ];
     }
 }
