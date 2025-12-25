@@ -356,8 +356,7 @@ class PickHeroApi extends Component
      */
     public function findMatchingOrders(Order $order): array
     {
-        $reference = $this->buildOrderReference($order);
-        $response = $this->getOrders()->findByExternalId($reference);
+        $response = $this->getOrders()->findByExternalId((string) $order->id);
         return $response['data'] ?? [];
     }
 
@@ -417,7 +416,9 @@ class PickHeroApi extends Component
         $billingAddress = $order->getBillingAddress();
         
         $payload = [
-            'external_id' => $this->buildOrderReference($order),
+            'external_id' => (string) $order->id,
+            'external_number' => $this->buildOrderReference($order),
+            'external_url' => $order->getCpEditUrl(),
             'reference' => $order->reference,
             'email_address' => $order->getEmail(),
         ];

@@ -1,8 +1,18 @@
+## 1.1.2 - 2025-12-25
+
+### Added
+- Added `external_url` to order API payload containing the Control Panel edit URL.
+- Added `external_number` to order API payload containing the order reference/number.
+- Added 'digital' as a product field mapping option.
+
+### Changed
+- Order `external_id` now contains the actual order model ID instead of the order reference.
+
 ## 1.1.1 - 2025-12-23
 
 ### Added
-- Added event that allows address manupulation
-- 
+- Added event that allows address manipulation.
+
 ## 1.1.0 - 2025-12-23
 
 ### Added
