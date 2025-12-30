@@ -1,3 +1,6 @@
+## 1.1.3 - 2025-12-30
+- Remove `digital`, it is no longer supported by PickHero.
+
 ## 1.1.2 - 2025-12-25
 
 ### Added
