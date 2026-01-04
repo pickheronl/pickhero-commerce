@@ -13,6 +13,7 @@ use craft\db\ActiveRecord;
  * @property bool $pushed
  * @property bool $stockAllocated
  * @property bool $processed
+ * @property int $submissionCount
  * @property string|null $pickheroOrderNumber
  * @property string|null $publicStatusPage
  * @property \DateTime|null $dateDeleted

@@ -93,6 +93,9 @@ class OrdersController extends Controller
         try {
             $syncStatus = CommercePickheroPlugin::getInstance()->orderSync->getSyncStatus($order);
             
+            // Increment submission count for unique external_id
+            $syncStatus->submissionCount++;
+            
             // Clear existing PickHero order data
             $syncStatus->pickheroOrderId = null;
             $syncStatus->pickheroOrderNumber = null;

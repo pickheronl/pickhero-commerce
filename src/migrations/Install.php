@@ -36,6 +36,7 @@ class Install extends Migration
             'pushed' => $this->boolean()->notNull()->defaultValue(false),
             'stockAllocated' => $this->boolean()->notNull()->defaultValue(false),
             'processed' => $this->boolean()->notNull()->defaultValue(false),
+            'submissionCount' => $this->integer()->notNull()->defaultValue(0),
             'pickheroOrderNumber' => $this->string(),
             'publicStatusPage' => $this->text(),
             'dateCreated' => $this->dateTime()->notNull(),

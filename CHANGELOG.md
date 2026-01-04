@@ -1,3 +1,12 @@
+## 1.1.4 - 2026-01-04
+
+### Added
+- Added "Unlink" button to order panel to disconnect an order from PickHero without deleting it remotely.
+- Added `submissionCount` tracking for orders, appending a suffix (`-1`, `-2`, etc.) to `external_id` when resubmitting to ensure uniqueness.
+
+### Removed
+- Removed the "Resubmit" button in favor of the Unlink + Send to PickHero flow.
+
 ## 1.1.3 - 2025-12-30
 - Remove `digital`, it is no longer supported by PickHero.
 

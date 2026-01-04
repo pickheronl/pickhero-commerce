@@ -30,6 +30,7 @@ class OrderSyncStatus extends Model
     public bool $pushed = false;
     public bool $stockAllocated = false;
     public bool $processed = false;
+    public int $submissionCount = 0;
     public ?string $pickheroOrderNumber = null;
     public ?string $publicStatusPage = null;
     public ?DateTime $dateCreated = null;

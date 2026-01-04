@@ -191,15 +191,18 @@ class PickHeroApi extends Component
      * exist can optionally be created automatically. Also ensures the customer
      * exists in PickHero before creating the order.
      * 
+     * @param Order $order The order to submit
+     * @param bool $autoCreateProducts Whether to auto-create missing products
+     * @param int $submissionCount Submission count for unique external_id suffix
      * @throws PickHeroApiException
      */
-    public function submitOrder(Order $order, bool $autoCreateProducts = false): array
+    public function submitOrder(Order $order, bool $autoCreateProducts = false, int $submissionCount = 0): array
     {
         // Ensure customer exists in PickHero
         $customer = $this->ensureCustomerExists($order);
         
         // Build order payload with customer ID and address overrides
-        $orderPayload = $this->transformOrderToPayload($order);
+        $orderPayload = $this->transformOrderToPayload($order, $submissionCount);
         
         if ($customer !== null) {
             $orderPayload['customer_id'] = (int) $customer['id'];
@@ -409,14 +412,23 @@ class PickHeroApi extends Component
      * Transform a Craft order into PickHero API payload format
      * 
      * Maps Craft Commerce order fields to PickHero's expected structure
+     * 
+     * @param Order $order The order to transform
+     * @param int $submissionCount Submission count for unique external_id suffix
      */
-    protected function transformOrderToPayload(Order $order): array
+    protected function transformOrderToPayload(Order $order, int $submissionCount = 0): array
     {
         $shippingAddress = $order->getShippingAddress();
         $billingAddress = $order->getBillingAddress();
         
+        // Add suffix if this is a resubmission
+        $externalId = (string) $order->id;
+        if ($submissionCount > 0) {
+            $externalId .= '-' . $submissionCount;
+        }
+        
         $payload = [
-            'external_id' => (string) $order->id,
+            'external_id' => $externalId,
             'external_number' => $this->buildOrderReference($order),
             'external_url' => $order->getCpEditUrl(),
             'reference' => $order->reference,
