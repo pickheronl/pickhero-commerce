@@ -111,7 +111,7 @@ class OrderSync extends Component
 
         if (empty($syncStatus->pickheroOrderId)) {
             // Create new order
-            $result = $this->api->submitOrder($order, $this->settings->createMissingProducts);
+            $result = $this->api->submitOrder($order, $this->settings->createMissingProducts, $syncStatus->submissionCount);
             $syncStatus->pickheroOrderId = $result['id'] ?? null;
             $syncStatus->pickheroOrderNumber = $result['number'] ?? null;
             $syncStatus->publicStatusPage = null;
@@ -211,6 +211,7 @@ class OrderSync extends Component
         $record->pushed = $model->pushed;
         $record->stockAllocated = $model->stockAllocated;
         $record->processed = $model->processed;
+        $record->submissionCount = $model->submissionCount;
         $record->pickheroOrderNumber = $model->pickheroOrderNumber;
         $record->publicStatusPage = $model->publicStatusPage;
         $record->dateDeleted = $model->dateDeleted ?? null;
