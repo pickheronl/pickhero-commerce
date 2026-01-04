@@ -71,6 +71,52 @@ class OrdersController extends Controller
     }
 
     /**
+     * Unlink an order from PickHero (clears local reference only)
+     * 
+     * @throws NotFoundHttpException
+     * @throws MissingComponentException
+     * @throws InvalidConfigException
+     * @throws BadRequestHttpException
+     * @throws ForbiddenHttpException
+     */
+    public function actionUnlink(): Response
+    {
+        $this->requirePermission('commerce-pickhero-pushOrders');
+        
+        $orderId = Craft::$app->getRequest()->getParam('orderId');
+
+        $order = CommercePlugin::getInstance()->getOrders()->getOrderById($orderId);
+        if (!$order || !$order->isCompleted) {
+            throw new NotFoundHttpException();
+        }
+
+        try {
+            $syncStatus = CommercePickheroPlugin::getInstance()->orderSync->getSyncStatus($order);
+            
+            // Clear existing PickHero order data
+            $syncStatus->pickheroOrderId = null;
+            $syncStatus->pickheroOrderNumber = null;
+            $syncStatus->pushed = false;
+            $syncStatus->stockAllocated = false;
+            $syncStatus->processed = false;
+            $syncStatus->publicStatusPage = null;
+            
+            CommercePickheroPlugin::getInstance()->orderSync->saveSyncStatus($syncStatus);
+            
+            Craft::$app->getSession()->setNotice(
+                Craft::t('commerce-pickhero', "Order unlinked from PickHero.")
+            );
+        } catch (\Exception $e) {
+            CommercePickheroPlugin::getInstance()->log->error("Failed to unlink order from PickHero.", $e);
+            Craft::$app->getSession()->setError(
+                Craft::t('commerce-pickhero', "Failed to unlink order from PickHero.")
+            );
+        }
+
+        return $this->redirectToPostedUrl();
+    }
+
+    /**
      * Trigger order processing in PickHero
      * 
      * @throws BadRequestHttpException

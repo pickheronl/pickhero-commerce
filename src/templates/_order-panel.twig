@@ -39,11 +39,15 @@
                             {{ "Send to PickHero"|t('commerce-pickhero') }}
                         </button>
                     {% elseif syncStatus and syncStatus.pickheroOrderId and not syncStatus.processed %}
-                        <button type="button" class="pickhero-order-action btn small" data-action="commerce-pickhero/admin/orders/push" data-order-id="{{ order.id }}">
-                            {{ "Resubmit"|t('commerce-pickhero') }}
-                        </button>
                         <button type="button" class="pickhero-order-action btn small submit" data-action="commerce-pickhero/admin/orders/process" data-order-id="{{ order.id }}">
                             {{ "Process Order"|t('commerce-pickhero') }}
+                        </button>
+                        <button type="button" class="pickhero-order-action btn small secondary" data-action="commerce-pickhero/admin/orders/unlink" data-order-id="{{ order.id }}">
+                            {{ "Unlink"|t('commerce-pickhero') }}
+                        </button>
+                    {% elseif syncStatus and syncStatus.pickheroOrderId and syncStatus.processed %}
+                        <button type="button" class="pickhero-order-action btn small secondary" data-action="commerce-pickhero/admin/orders/unlink" data-order-id="{{ order.id }}">
+                            {{ "Unlink"|t('commerce-pickhero') }}
                         </button>
                     {% endif %}
                 {% endif %}
