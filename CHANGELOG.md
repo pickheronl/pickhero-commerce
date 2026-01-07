@@ -1,3 +1,8 @@
+## 1.1.5 - 2026-01-07
+
+### Added
+- Added `shipping_method_external_id` to order payload, mapped from the Craft Commerce order's `shippingMethodHandle`.
+
 ## 1.1.4 - 2026-01-04
 
 ### Added

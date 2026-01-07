@@ -435,6 +435,11 @@ class PickHeroApi extends Component
             'email_address' => $order->getEmail(),
         ];
         
+        // Map Craft shipping method handle to PickHero shipping_method_external_id
+        if (!empty($order->shippingMethodHandle)) {
+            $payload['shipping_method_external_id'] = $order->shippingMethodHandle;
+        }
+        
         // Add customer remarks if available
         if (!empty($order->message)) {
             $payload['customer_remarks'] = $order->message;
