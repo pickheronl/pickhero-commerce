@@ -1,3 +1,8 @@
+## 1.1.6 - 2026-01-08
+
+### Changed
+- Automatic order synchronization to PickHero now runs via a Craft queue job instead of synchronously on order save.
+
 ## 1.1.5 - 2026-01-07
 
 ### Added
