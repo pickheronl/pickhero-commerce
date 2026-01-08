@@ -2,6 +2,7 @@
 
 namespace pickhero\commerce\services;
 
+use Craft;
 use craft\base\Component;
 use craft\base\Element;
 use craft\commerce\elements\Order;
@@ -10,6 +11,7 @@ use pickhero\commerce\CommercePickheroPlugin;
 use pickhero\commerce\errors\PickHeroApiException;
 use pickhero\commerce\models\OrderSyncStatus;
 use pickhero\commerce\models\Settings;
+use pickhero\commerce\queue\SyncOrderJob;
 use pickhero\commerce\records\OrderSyncStatus as OrderSyncStatusRecord;
 use yii\base\Event;
 use yii\base\InvalidArgumentException;
@@ -55,7 +57,10 @@ class OrderSync extends Component
                     return;
                 }
 
-                $this->handleOrderChange($order);
+                // Defer PickHero synchronization to the Craft queue
+                Craft::$app->getQueue()->push(new SyncOrderJob([
+                    'orderId' => (int) $order->id,
+                ]));
             }
         );
     }
