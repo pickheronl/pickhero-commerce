@@ -429,7 +429,7 @@ class PickHeroApi extends Component
         
         $payload = [
             'external_id' => $externalId,
-            'external_number' => $this->buildOrderReference($order),
+            'external_number' => (string)$order->id,
             'external_url' => $order->getCpEditUrl(),
             'reference' => $order->reference,
             'email_address' => $order->getEmail(),
