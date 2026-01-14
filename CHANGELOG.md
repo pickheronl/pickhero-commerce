@@ -1,3 +1,6 @@
+## 1.1.7 - 2026-01-14
+- Use order id for extrenal_number
+
 ## 1.1.6 - 2026-01-08
 
 ### Changed
