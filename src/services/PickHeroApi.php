@@ -13,6 +13,7 @@ use pickhero\commerce\dto\ProductData;
 use pickhero\commerce\errors\PickHeroApiException;
 use pickhero\commerce\events\AddressEvent;
 use pickhero\commerce\events\OrderLineItemsEvent;
+use pickhero\commerce\events\OrderPayloadEvent;
 use pickhero\commerce\http\PickHeroClient;
 use pickhero\commerce\http\resources\CustomersResource;
 use pickhero\commerce\http\resources\OrdersResource;
@@ -48,6 +49,11 @@ class PickHeroApi extends Component
      * Event triggered to allow modification of address data before pushing to PickHero
      */
     public const EVENT_TRANSFORM_ADDRESS = 'transformAddress';
+
+    /**
+     * Event triggered to allow modification of the complete order payload before pushing to PickHero
+     */
+    public const EVENT_MODIFY_ORDER_PAYLOAD = 'modifyOrderPayload';
 
     private ?Settings $settings = null;
     private ?PickHeroClient $client = null;
@@ -254,6 +260,14 @@ class PickHeroApi extends Component
             
             $orderPayload['rows'][] = $rowPayload;
         }
+
+        // Allow modification of complete order payload via event
+        $event = new OrderPayloadEvent([
+            'order' => $order,
+            'payload' => $orderPayload,
+        ]);
+        $this->trigger(self::EVENT_MODIFY_ORDER_PAYLOAD, $event);
+        $orderPayload = $event->payload;
 
         $response = $this->getOrders()->create($orderPayload);
         return $response['data'] ?? $response;
