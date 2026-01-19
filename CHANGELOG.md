@@ -1,3 +1,5 @@
+## 1.1.8 - 2026-01-14
+- Add order event
 ## 1.1.7 - 2026-01-14
 - Use order id for extrenal_number
 
