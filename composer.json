@@ -22,7 +22,7 @@
         "hasCpSettings": true,
         "hasCpSection": true,
         "class": "pickhero\\commerce\\CommercePickheroPlugin",
-        "documentationUrl": "https://pickhero.nl/docs/craft-commerce"
+        "documentationUrl": "https://github.com/pickheronl/pickhero-commerce"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
