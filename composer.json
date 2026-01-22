@@ -2,7 +2,7 @@
     "name": "pickhero/craft-commerce",
     "description": "Connect your Craft Commerce store to PickHero WMS for streamlined warehouse management and order fulfillment.",
     "type": "craft-plugin",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.0",
         "craftcms/cms": "^4.0.0|^5.0.0",
