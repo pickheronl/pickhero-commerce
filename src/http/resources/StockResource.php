@@ -25,7 +25,7 @@ class StockResource extends ApiResource
     public function list(array $filters = [], ?string $sort = '-quantity', ?string $include = null, ?int $page = null): array
     {
         $params = $this->buildListParams($filters, $sort, $include);
-
+        $params['page[size]'] = '100';
         if ($page !== null) {
             $params['page[number]'] = $page;
         }
