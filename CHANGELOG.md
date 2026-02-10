@@ -1,3 +1,8 @@
+## 1.2.0 - 2026-02-02
+- Implement logs
+- Implement webhook for stock updates
+- Fix issue with stock import
+- 
 ## 1.1.10 - 2026-01-22
 -  Add license
 ## 1.1.9 - 2026-01-22

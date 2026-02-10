@@ -15,6 +15,7 @@ use pickhero\commerce\http\ApiResource;
 class WebhooksResource extends ApiResource
 {
     public const TOPIC_ORDER_STATUS_CHANGED = 'order_status_changed';
+    public const TOPIC_STOCK_CHANGED = 'stock_changed';
 
     /**
      * List all webhooks with optional filtering

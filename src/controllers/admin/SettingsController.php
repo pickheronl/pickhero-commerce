@@ -27,10 +27,13 @@ class SettingsController extends Controller
         $settings = CommercePickheroPlugin::getInstance()->getSettings();
         $settings->validate();
 
+        $logContents = CommercePickheroPlugin::getInstance()->log->getLogContents();
+
         return $this->renderTemplate('commerce-pickhero/_settings', [
             'plugin' => CommercePickheroPlugin::getInstance(),
             'settings' => $settings,
             'allowAdminChanges' => Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
+            'logContents' => $logContents,
         ]);
     }
 }

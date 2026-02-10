@@ -179,6 +179,7 @@ class WebhooksController extends Controller
     {
         return match ($type) {
             WebhooksResource::TOPIC_ORDER_STATUS_CHANGED => 'order-status-changed',
+            WebhooksResource::TOPIC_STOCK_CHANGED => 'stock-changed',
             default => null,
         };
     }
