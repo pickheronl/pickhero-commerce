@@ -10,7 +10,10 @@ use craft\events\RegisterUserPermissionsEvent;
 use craft\helpers\UrlHelper;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
+use pickhero\commerce\errors\PickHeroApiException;
+use pickhero\commerce\http\resources\WebhooksResource;
 use pickhero\commerce\models\Settings;
+use pickhero\commerce\models\Webhook;
 use pickhero\commerce\services\Log;
 use pickhero\commerce\services\OrderSync;
 use pickhero\commerce\services\PickHeroApi;
@@ -141,6 +144,75 @@ class CommercePickheroPlugin extends Plugin
             ],
         ];
         return $item;
+    }
+
+    /**
+     * After settings are saved, manage stock webhook registration
+     */
+    public function afterSaveSettings(): void
+    {
+        parent::afterSaveSettings();
+
+        $settings = $this->getSettings();
+
+        if ($settings->syncStock) {
+            $this->ensureStockWebhookRegistered();
+        } else {
+            $this->removeStockWebhook();
+        }
+    }
+
+    protected function ensureStockWebhookRegistered(): void
+    {
+        $topic = WebhooksResource::TOPIC_STOCK_CHANGED;
+        $existing = $this->webhooks->getWebhookByType($topic);
+
+        if ($existing && !empty($existing->pickheroWebhookId)) {
+            return;
+        }
+
+        try {
+            $generalConfig = Craft::$app->getConfig()->getGeneral();
+            $secret = bin2hex(random_bytes(16));
+            $webhookUrl = UrlHelper::siteUrl(
+                $generalConfig->actionTrigger . '/commerce-pickhero/webhooks/stock-changed/'
+            );
+
+            $hookInfo = $this->api->registerWebhook($webhookUrl, $topic, $secret);
+
+            if (!empty($hookInfo['id'])) {
+                $config = new Webhook([
+                    'type' => $topic,
+                    'pickheroWebhookId' => (int) $hookInfo['id'],
+                    'secret' => $secret,
+                ]);
+                $this->webhooks->saveWebhook($config);
+                $this->log->log("Stock webhook registered successfully.");
+            }
+        } catch (\Exception $e) {
+            $this->log->error("Failed to register stock webhook", $e);
+        }
+    }
+
+    protected function removeStockWebhook(): void
+    {
+        $topic = WebhooksResource::TOPIC_STOCK_CHANGED;
+        $config = $this->webhooks->getWebhookByType($topic);
+
+        if (!$config || empty($config->pickheroWebhookId)) {
+            return;
+        }
+
+        try {
+            $this->api->removeWebhook($config->pickheroWebhookId);
+        } catch (PickHeroApiException $e) {
+            if (!$e->isNotFound()) {
+                $this->log->error("Failed to remove stock webhook from PickHero", $e);
+            }
+        }
+
+        $this->webhooks->delete($config);
+        $this->log->log("Stock webhook removed.");
     }
 
     /**

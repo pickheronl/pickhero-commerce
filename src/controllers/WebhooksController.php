@@ -26,7 +26,7 @@ class WebhooksController extends Controller
     private ?ProductSync $productSync = null;
     private ?Webhooks $webhooks = null;
 
-    protected array|int|bool $allowAnonymous = ['order-status-changed'];
+    protected array|int|bool $allowAnonymous = ['order-status-changed', 'stock-changed'];
 
     /**
      * @throws InvalidConfigException
@@ -110,6 +110,44 @@ class WebhooksController extends Controller
             return $this->asJson(['status' => 'ERROR'])->setStatusCode(500);
         } finally {
             $this->settings->pushOrders = $originalPushOrders;
+        }
+
+        return $this->asJson(['status' => 'OK']);
+    }
+
+    /**
+     * Handle stock changed webhook from PickHero
+     */
+    public function actionStockChanged(): Response
+    {
+        if (!$this->settings->syncStock) {
+            return $this->asJson(['status' => 'IGNORED'])->setStatusCode(400);
+        }
+
+        try {
+            $payload = $this->receiveWebhookPayload(WebhooksResource::TOPIC_STOCK_CHANGED);
+
+            $data = $payload['data'] ?? [];
+            $sku = $data['product_code'] ?? null;
+            $newStock = $data['new_stock'] ?? null;
+
+            if (empty($sku)) {
+                $this->log->trace("Stock webhook without product_code received. Skipping.");
+                return $this->asJson(['status' => 'OK']);
+            }
+
+            if ($newStock === null) {
+                $this->log->trace("Stock webhook without new_stock received. Skipping.");
+                return $this->asJson(['status' => 'OK']);
+            }
+
+            $this->productSync->updateStock($sku, (int) $newStock);
+        } catch (HttpException $e) {
+            $this->log->error("Stock webhook processing failed", $e);
+            return $this->asJson(['status' => 'ERROR'])->setStatusCode($e->statusCode);
+        } catch (\Exception $e) {
+            $this->log->error("Stock webhook processing failed", $e);
+            return $this->asJson(['status' => 'ERROR'])->setStatusCode(500);
         }
 
         return $this->asJson(['status' => 'OK']);

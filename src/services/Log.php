@@ -106,4 +106,60 @@ class Log extends Component
     {
         return $this->getLogFile();
     }
+
+    /**
+     * Get the last N lines from the log file efficiently
+     *
+     * Reads from the end of the file to avoid loading the entire file into memory.
+     */
+    public function getLogContents(int $lines = 200): string
+    {
+        $logFile = $this->getLogFile();
+
+        if (!file_exists($logFile)) {
+            return '';
+        }
+
+        $handle = fopen($logFile, 'r');
+        if ($handle === false) {
+            return '';
+        }
+
+        $result = [];
+        $chunkSize = 4096;
+        $buffer = '';
+
+        fseek($handle, 0, SEEK_END);
+        $position = ftell($handle);
+
+        while ($position > 0 && count($result) < $lines) {
+            $readSize = min($chunkSize, $position);
+            $position -= $readSize;
+            fseek($handle, $position);
+            $buffer = fread($handle, $readSize) . $buffer;
+
+            $bufferLines = explode("\n", $buffer);
+            // Keep the first (potentially incomplete) line in the buffer
+            $buffer = array_shift($bufferLines);
+
+            // Prepend complete lines to result
+            foreach (array_reverse($bufferLines) as $line) {
+                if ($line !== '') {
+                    array_unshift($result, $line);
+                }
+            }
+        }
+
+        // Include remaining buffer as first line
+        if ($buffer !== '' && count($result) < $lines) {
+            array_unshift($result, $buffer);
+        }
+
+        fclose($handle);
+
+        // Take only the last N lines and reverse so newest is first
+        $lastLines = array_slice($result, -$lines);
+
+        return implode("\n", array_reverse($lastLines));
+    }
 }

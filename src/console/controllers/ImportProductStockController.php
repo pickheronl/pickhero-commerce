@@ -83,50 +83,60 @@ class ImportProductStockController extends \yii\console\Controller
 
         $processed = 0;
         $skipped = 0;
-        
+
         try {
-            // Get stock data from PickHero with product information
-            $response = $this->api->getStock()->list(
-                ['has_stock' => 'true'],
-                '-quantity',
-                'product'
-            );
-            
-            $stockData = $response['data'] ?? [];
-            
-            // Group by product code and sum quantities
+            // Fetch all pages of stock data from PickHero
             $stockByProduct = [];
-            foreach ($stockData as $item) {
-                $productCode = $item['product']['product_code'] ?? null;
-                if (!$productCode) {
-                    continue;
+            $page = 1;
+
+            do {
+                $response = $this->api->getStock()->list(
+                    [],
+                    '-quantity',
+                    'product',
+                    $page
+                );
+
+                $stockData = $response['data'] ?? [];
+                $lastPage = $response['meta']['last_page'] ?? 1;
+
+                foreach ($stockData as $item) {
+                    $productCode = $item['product']['product_code'] ?? null;
+                    if (!$productCode) {
+                        continue;
+                    }
+
+                    if (!isset($stockByProduct[$productCode])) {
+                        $stockByProduct[$productCode] = 0;
+                    }
+                    $stockByProduct[$productCode] += (int) ($item['quantity'] ?? 0);
                 }
-                
-                if (!isset($stockByProduct[$productCode])) {
-                    $stockByProduct[$productCode] = 0;
-                }
-                $stockByProduct[$productCode] += (int) ($item['quantity'] ?? 0);
-            }
-            
+
+                $this->stdout("Fetched page {$page}/{$lastPage}" . PHP_EOL);
+                $page++;
+            } while ($page <= $lastPage);
+
+            $this->log->log("Fetched stock for " . count($stockByProduct) . " products from PickHero.");
+
             $index = 0;
             foreach ($stockByProduct as $sku => $quantity) {
                 $index++;
-                
+
                 if ($this->offset !== null && $index <= $this->offset) {
                     $skipped++;
                     continue;
                 }
-                
+
                 if ($this->limit !== null && $processed >= $this->limit) {
                     break;
                 }
-                
+
                 try {
                     $this->productSync->updateStock($sku, $quantity);
                     $processed++;
                 } catch (\Exception $e) {
                     $this->log->error("Failed to update stock for '{$sku}'.", $e);
-                    
+
                     if ($this->debug) {
                         throw $e;
                     }
@@ -137,7 +147,7 @@ class ImportProductStockController extends \yii\console\Controller
             $this->stderr("Error: " . $e->getMessage() . PHP_EOL);
             return 1;
         }
-        
+
         $this->log->log("Stock import completed. Processed: {$processed}, Skipped: {$skipped}");
         $this->stdout("Stock import completed. Processed: {$processed}, Skipped: {$skipped}" . PHP_EOL);
         

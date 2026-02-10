@@ -5,6 +5,7 @@ namespace pickhero\commerce\services;
 use Craft;
 use craft\base\Component;
 use craft\commerce\elements\Variant;
+use craft\commerce\Plugin as Commerce;
 use craft\errors\ElementNotFoundException;
 use pickhero\commerce\CommercePickheroPlugin;
 use pickhero\commerce\dto\ProductData;
@@ -47,18 +48,16 @@ class ProductSync extends Component
     public function updateStock(string $sku, int $stock): void
     {
         $variant = Variant::find()->sku($sku)->one();
-        
+
         if (!$variant) {
             $this->log->trace("Variant '{$sku}' not found.");
             return;
         }
 
-        if ($variant->stock != $stock) {
-            $variant->stock = $stock;
+        $inventory = Commerce::getInstance()->getInventory();
 
-            if (!\Craft::$app->getElements()->saveElement($variant)) {
-                throw new \Exception("Could not save variant stock. " . implode("\n", $variant->getFirstErrors()));
-            }
+        if ($variant->getStock() != $stock) {
+            $inventory->updateInventoryLevel($variant->getInventoryItem()->id, $stock);
             $this->log->trace("Variant '{$sku}' stock updated to '{$stock}'.");
         } else {
             $this->log->trace("Variant '{$sku}' stock remains unchanged: '{$stock}'");
