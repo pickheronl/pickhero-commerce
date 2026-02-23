@@ -93,7 +93,7 @@ class WebhooksController extends Controller
 
             if (!$order) {
                 $this->log->trace("Order '{$orderExternalId}' (lookup: '{$orderLookupId}') not found in Craft.");
-                return $this->asJson(['status' => 'OK']);
+                return $this->asJson(['status' => 'NOT_FOUND'])->setStatusCode(404);
             }
             
             // Update order status based on mapping

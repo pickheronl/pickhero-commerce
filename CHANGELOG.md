@@ -2,6 +2,7 @@
 
 ### Fixed
 - Fixed status sync not matching re-synced orders with resubmission suffix (e.g. "720383-1")
+- Fixed webhook returning 200 OK when order was not found, now correctly returns 404
 
 ## 1.2.2 - 2026-02-23
 - Added "Register Webhooks" button to settings page
