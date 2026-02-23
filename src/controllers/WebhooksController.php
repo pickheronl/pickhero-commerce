@@ -79,17 +79,9 @@ class WebhooksController extends Controller
 
             /** @var Order|null $order */
             $order = Order::find()
-                ->reference($orderLookupId)
+                ->id($orderLookupId)
                 ->status(null)
                 ->one();
-                
-            if (!$order) {
-                // Try by order number
-                $order = Order::find()
-                    ->number($orderLookupId)
-                    ->status(null)
-                    ->one();
-            }
 
             if (!$order) {
                 $this->log->trace("Order '{$orderExternalId}' (lookup: '{$orderLookupId}') not found in Craft.");
