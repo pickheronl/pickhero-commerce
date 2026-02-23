@@ -251,7 +251,14 @@ class PickHeroApi extends Component
             ];
             
             if ($this->settings->pushPrices) {
-                $rowPayload['price'] = (float) $lineItem->getSalePrice();
+                $includedTax = 0;
+                foreach ($lineItem->getAdjustments() as $adjustment) {
+                    if ($adjustment->type === 'tax' && $adjustment->included) {
+                        $includedTax += $adjustment->amount;
+                    }
+                }
+                $priceExTax = $lineItem->getSalePrice() - ($lineItem->qty > 0 ? $includedTax / $lineItem->qty : 0);
+                $rowPayload['price'] = (float) round($priceExTax, 2);
             }
             
             if (!empty($lineItem->note)) {
