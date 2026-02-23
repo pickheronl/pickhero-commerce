@@ -1,3 +1,8 @@
+## 1.2.4 - 2026-02-23
+
+### Fixed
+- Fixed order lookup in webhook handler using element ID instead of reference
+
 ## 1.2.3 - 2026-02-23
 
 ### Fixed
