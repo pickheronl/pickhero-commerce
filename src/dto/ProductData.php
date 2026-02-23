@@ -3,6 +3,7 @@
 namespace pickhero\commerce\dto;
 
 use craft\commerce\elements\Variant;
+use craft\commerce\Plugin as Commerce;
 use craft\elements\Asset;
 use craft\elements\db\AssetQuery;
 use craft\elements\db\ElementQuery;
@@ -34,7 +35,7 @@ class ProductData
             externalId: (string) $variant->id,
             productCode: $variant->sku,
             name: self::buildProductName($variant),
-            price: (float) ($variant->price ?? 0),
+            price: self::getPriceExcludingTax($variant),
             weight: $variant->weight ? (int) $variant->weight : null,
             length: $variant->length ? (int) $variant->length : null,
             width: $variant->width ? (int) $variant->width : null,
@@ -80,6 +81,39 @@ class ProductData
         unset($data['external_id']);
         
         return $data;
+    }
+
+    /**
+     * Get variant price excluding any included tax
+     */
+    protected static function getPriceExcludingTax(Variant $variant): float
+    {
+        $price = (float) ($variant->price ?? 0);
+
+        if ($price <= 0) {
+            return $price;
+        }
+
+        $taxCategory = $variant->getTaxCategory();
+
+        if (!$taxCategory) {
+            return $price;
+        }
+
+        $taxRates = Commerce::getInstance()->getTaxRates()->getAllTaxRates();
+        $includedRate = 0;
+
+        foreach ($taxRates as $taxRate) {
+            if ($taxRate->taxCategoryId === $taxCategory->id && $taxRate->include) {
+                $includedRate += $taxRate->rate;
+            }
+        }
+
+        if ($includedRate > 0) {
+            return round($price / (1 + $includedRate), 2);
+        }
+
+        return $price;
     }
 
     /**
