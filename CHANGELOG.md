@@ -1,8 +1,20 @@
+## 1.2.3 - 2026-02-23
+
+### Fixed
+- Fixed status sync not matching re-synced orders with resubmission suffix (e.g. "720383-1")
+
+## 1.2.2 - 2026-02-23
+- Added "Register Webhooks" button to settings page
+- Webhook registration can now be done from the admin panel
+
+## 1.2.1 - 2026-02-02
+- Added webhook registration controller
+
 ## 1.2.0 - 2026-02-02
 - Implement logs
 - Implement webhook for stock updates
 - Fix issue with stock import
-- 
+
 ## 1.1.10 - 2026-01-22
 -  Add license
 ## 1.1.9 - 2026-01-22

@@ -73,23 +73,26 @@ class WebhooksController extends Controller
                 $this->log->trace("Order status webhook without status received. Skipping.");
                 return $this->asJson(['status' => 'OK']);
             }
-            
+
+            // Strip resubmission suffix (e.g. "720383-1" -> "720383")
+            $orderLookupId = preg_replace('/-\d+$/', '', $orderExternalId);
+
             /** @var Order|null $order */
             $order = Order::find()
-                ->reference($orderExternalId)
+                ->reference($orderLookupId)
                 ->status(null)
                 ->one();
                 
             if (!$order) {
                 // Try by order number
                 $order = Order::find()
-                    ->number($orderExternalId)
+                    ->number($orderLookupId)
                     ->status(null)
                     ->one();
             }
-            
+
             if (!$order) {
-                $this->log->trace("Order '{$orderExternalId}' not found in Craft.");
+                $this->log->trace("Order '{$orderExternalId}' (lookup: '{$orderLookupId}') not found in Craft.");
                 return $this->asJson(['status' => 'OK']);
             }
             
