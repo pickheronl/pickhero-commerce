@@ -187,6 +187,21 @@
 
             {# Webhooks Tab #}
             <div id="webhooks" class="hidden">
+                <div class="field">
+                    <div class="heading">
+                        <label>{{ "Re-install Webhooks"|t('commerce-pickhero') }}</label>
+                    </div>
+                    <div class="instructions">
+                        <p>{{ "Remove and re-register all webhooks in PickHero. Use this if webhooks are not working correctly."|t('commerce-pickhero') }}</p>
+                    </div>
+                    <div class="input ltr">
+                        <button type="button" id="reinstall-webhooks-btn" class="btn">{{ "Re-install Webhooks"|t('commerce-pickhero') }}</button>
+                        <span id="reinstall-webhooks-status" style="margin-left: 10px;"></span>
+                    </div>
+                </div>
+
+                <hr>
+
                 {{ forms.lightswitchField({
                     label:        "Sync Order Status"|t('commerce-pickhero'),
                     instructions: "Update Craft order status when order status changes in PickHero."|t('commerce-pickhero'),
@@ -261,6 +276,44 @@
             dropdownParent: 'body'
         });
     
+        $('#reinstall-webhooks-btn').on('click', function() {
+            var $btn = $(this);
+            var $status = $('#reinstall-webhooks-status');
+
+            $btn.addClass('disabled').prop('disabled', true);
+            $status.html('<span class="spinner inline"></span>');
+
+            var data = {};
+            data[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+            $.ajax('{{ actionUrl('commerce-pickhero/admin/webhooks/register-all') }}', { method: 'post', data: data })
+                .done(function(response) {
+                    if (response.success) {
+                        $status.html('<span class="status live"></span> {{ "All webhooks registered successfully."|t('commerce-pickhero') }}');
+                    } else {
+                        var messages = [];
+                        for (var type in response.results) {
+                            var r = response.results[type];
+                            if (r.status === 'error') {
+                                messages.push(type + ': ' + r.message);
+                            }
+                        }
+                        $status.html('<span class="status"></span> {{ "Completed with errors:"|t('commerce-pickhero') }} ' + messages.join(', '));
+                    }
+
+                    // Refresh individual webhook toggles
+                    $('.webhook-toggle').each(function() {
+                        $(this).trigger('refresh-status');
+                    });
+                })
+                .fail(function() {
+                    $status.html('<span class="status"></span> {{ "Failed to re-install webhooks."|t('commerce-pickhero') }}');
+                })
+                .always(function() {
+                    $btn.removeClass('disabled').prop('disabled', false);
+                });
+        });
+
         $('.webhook-toggle').each(function() {
             var $container = $(this);
             var type = $container.data('hook-type');
@@ -288,14 +341,21 @@
                 $statusText.text('{{ "Processing..."|t('commerce-pickhero') }}');
             };
             
+            var loadStatus = function() {
+                $.ajax('{{ actionUrl('commerce-pickhero/admin/webhooks/get-hook-status') }}', { data: {type: type}})
+                    .done(function(data) {
+                        updateUI(data.status === 'active', data.statusText);
+                    })
+                    .fail(function() {
+                        updateUI(false, '{{ "Failed to load status"|t('commerce-pickhero') }}');
+                    });
+            };
+
             // Load initial state
-            $.ajax('{{ actionUrl('commerce-pickhero/admin/webhooks/get-hook-status') }}', { data: {type: type}})
-                .done(function(data) {
-                    updateUI(data.status === 'active', data.statusText);
-                })
-                .fail(function() {
-                    updateUI(false, '{{ "Failed to load status"|t('commerce-pickhero') }}');
-                });
+            loadStatus();
+
+            // Allow external refresh
+            $container.on('refresh-status', loadStatus);
 
             // Handle toggle
             $switch.on('click', function(e) {
