@@ -173,6 +173,83 @@ class WebhooksController extends Controller
     }
 
     /**
+     * Re-register all webhooks (equivalent to the CLI command)
+     *
+     * @throws PickHeroApiException
+     */
+    public function actionRegisterAll(): Response
+    {
+        $this->requirePostRequest();
+
+        $generalConfig = Craft::$app->getConfig()->getGeneral();
+
+        $types = [
+            WebhooksResource::TOPIC_ORDER_STATUS_CHANGED,
+            WebhooksResource::TOPIC_STOCK_CHANGED,
+        ];
+
+        $results = [];
+        $errors = 0;
+
+        foreach ($types as $type) {
+            try {
+                // Remove existing webhook if present
+                $existingConfig = $this->webhooks->getWebhookByType($type);
+                if ($existingConfig && !empty($existingConfig->pickheroWebhookId)) {
+                    try {
+                        $this->api->removeWebhook($existingConfig->pickheroWebhookId);
+                    } catch (PickHeroApiException $e) {
+                        if (!$e->isNotFound()) {
+                            throw $e;
+                        }
+                    }
+                    $this->webhooks->delete($existingConfig);
+                }
+
+                // Generate webhook secret and determine endpoint
+                $secret = bin2hex(random_bytes(16));
+                $actionPath = $this->getWebhookActionPath($type);
+
+                if (!$actionPath) {
+                    throw new \Exception("Unknown webhook type: {$type}");
+                }
+
+                $webhookUrl = UrlHelper::siteUrl(
+                    $generalConfig->actionTrigger . "/commerce-pickhero/webhooks/{$actionPath}/"
+                );
+
+                // Register in PickHero
+                $hookInfo = $this->api->registerWebhook($webhookUrl, $type, $secret);
+
+                if (empty($hookInfo['id'])) {
+                    throw new \Exception("Failed to register webhook: " . json_encode($hookInfo));
+                }
+
+                // Save local configuration
+                $config = new Webhook([
+                    'type' => $type,
+                    'pickheroWebhookId' => (int) $hookInfo['id'],
+                    'secret' => $secret,
+                ]);
+
+                if (!$this->webhooks->saveWebhook($config)) {
+                    throw new \Exception("Failed to save webhook configuration.");
+                }
+
+                $results[$type] = ['status' => 'active', 'message' => Craft::t('commerce-pickhero', 'Registered')];
+            } catch (\Exception $e) {
+                $errors++;
+                $results[$type] = ['status' => 'error', 'message' => $e->getMessage()];
+            }
+        }
+
+        return $this->asJson([
+            'success' => $errors === 0,
+            'results' => $results,
+        ]);
+    }
+
+    /**
      * Map webhook type to controller action path
      */
     protected function getWebhookActionPath(string $type): ?string
