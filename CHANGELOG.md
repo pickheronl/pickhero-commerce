@@ -1,3 +1,13 @@
+## 1.2.6 - 2026-02-24
+
+### Changed
+- Order sync jobs are now dispatched on order status changes instead of every order save, preventing unnecessary queue jobs
+
+## 1.2.5 - 2026-02-24
+
+### Fixed
+- Sync prices excluding tax
+
 ## 1.2.4 - 2026-02-23
 
 ### Fixed
