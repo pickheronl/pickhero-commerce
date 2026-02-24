@@ -4,9 +4,9 @@ namespace pickhero\commerce\services;
 
 use Craft;
 use craft\base\Component;
-use craft\base\Element;
 use craft\commerce\elements\Order;
-use craft\events\ModelEvent;
+use craft\commerce\events\OrderStatusEvent;
+use craft\commerce\services\OrderHistories;
 use pickhero\commerce\CommercePickheroPlugin;
 use pickhero\commerce\errors\PickHeroApiException;
 use pickhero\commerce\models\OrderSyncStatus;
@@ -43,17 +43,26 @@ class OrderSync extends Component
     public function registerEventListeners(): void
     {
         Event::on(
-            Order::class,
-            Element::EVENT_AFTER_SAVE,
-            function(ModelEvent $event): void {
-                /** @var Order $order */
-                $order = $event->sender;
-                
+            OrderHistories::class,
+            OrderHistories::EVENT_ORDER_STATUS_CHANGE,
+            function(OrderStatusEvent $event): void {
                 if (!$this->settings->pushOrders) {
                     return;
                 }
 
-                if ($order->propagating) {
+                $order = $event->order;
+                $newStatus = $order->getOrderStatus();
+
+                if (!$newStatus) {
+                    return;
+                }
+
+                $relevantStatuses = array_merge(
+                    $this->settings->orderStatusToPush,
+                    $this->settings->orderStatusToProcess,
+                );
+
+                if (!in_array($newStatus->handle, $relevantStatuses, true)) {
                     return;
                 }
 
