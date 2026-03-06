@@ -7,6 +7,7 @@ use craft\base\Component;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
 use craft\commerce\elements\Variant;
+use craft\commerce\Plugin as Commerce;
 use craft\elements\Address;
 use pickhero\commerce\CommercePickheroPlugin;
 use pickhero\commerce\dto\ProductData;
@@ -258,6 +259,16 @@ class PickHeroApi extends Component
                     }
                 }
                 $priceExTax = $lineItem->getSalePrice() - ($lineItem->qty > 0 ? $includedTax / $lineItem->qty : 0);
+
+                // Convert to EUR if order is in a different currency
+                if ($order->currency !== 'EUR') {
+                    $teller = Commerce::getInstance()->getCurrencies()->getTeller($order->currency);
+                    $tellerEur = Commerce::getInstance()->getCurrencies()->getTeller('EUR');
+                    $priceAsMoney = $teller->convertToMoney($priceExTax);
+                    $priceInEur = Commerce::getInstance()->getPaymentCurrencies()->convertAmount($priceAsMoney, 'EUR', $order->getStore()->id);
+                    $priceExTax = (float) $tellerEur->convertToString($priceInEur);
+                }
+
                 $rowPayload['price'] = (float) round($priceExTax, 2);
             }
             

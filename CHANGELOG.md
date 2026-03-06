@@ -1,3 +1,8 @@
+## 1.2.8 - 2026-03-06
+
+### Fixed
+- Convert order line item prices to EUR before sending to PickHero when order is in a different currency
+
 ## 1.2.7 - 2026-03-06
 
 ### Changed
