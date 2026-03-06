@@ -85,63 +85,50 @@ class ImportProductStockController extends \yii\console\Controller
         $skipped = 0;
 
         try {
-            // Fetch all pages of stock data from PickHero
-            $stockByProduct = [];
             $page = 1;
+            $index = 0;
 
             do {
-                $response = $this->api->getStock()->list(
-                    [],
-                    '-quantity',
-                    'product',
-                    $page
-                );
+                $response = $this->api->getStock()->listProducts([], null, $page);
 
-                $stockData = $response['data'] ?? [];
+                $products = $response['data'] ?? [];
                 $lastPage = $response['meta']['last_page'] ?? 1;
 
-                foreach ($stockData as $item) {
-                    $productCode = $item['product']['product_code'] ?? null;
-                    if (!$productCode) {
+                foreach ($products as $product) {
+                    $index++;
+                    $sku = $product['product_code'] ?? null;
+
+                    if (!$sku) {
                         continue;
                     }
 
-                    if (!isset($stockByProduct[$productCode])) {
-                        $stockByProduct[$productCode] = 0;
+                    if ($this->offset !== null && $index <= $this->offset) {
+                        $skipped++;
+                        continue;
                     }
-                    $stockByProduct[$productCode] += (int) ($item['quantity'] ?? 0);
+
+                    if ($this->limit !== null && $processed >= $this->limit) {
+                        break 2;
+                    }
+
+                    try {
+                        $availableStock = (int) ($product['available_stock'] ?? 0);
+                        $this->productSync->updateStock($sku, $availableStock);
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $this->log->error("Failed to update stock for '{$sku}'.", $e);
+
+                        if ($this->debug) {
+                            throw $e;
+                        }
+                    }
                 }
 
                 $this->stdout("Fetched page {$page}/{$lastPage}" . PHP_EOL);
                 $page++;
             } while ($page <= $lastPage);
 
-            $this->log->log("Fetched stock for " . count($stockByProduct) . " products from PickHero.");
-
-            $index = 0;
-            foreach ($stockByProduct as $sku => $quantity) {
-                $index++;
-
-                if ($this->offset !== null && $index <= $this->offset) {
-                    $skipped++;
-                    continue;
-                }
-
-                if ($this->limit !== null && $processed >= $this->limit) {
-                    break;
-                }
-
-                try {
-                    $this->productSync->updateStock($sku, $quantity);
-                    $processed++;
-                } catch (\Exception $e) {
-                    $this->log->error("Failed to update stock for '{$sku}'.", $e);
-
-                    if ($this->debug) {
-                        throw $e;
-                    }
-                }
-            }
+            $this->log->log("Processed stock for {$processed} products from PickHero.");
         } catch (\Exception $e) {
             $this->log->error("Stock import failed.", $e);
             $this->stderr("Error: " . $e->getMessage() . PHP_EOL);
