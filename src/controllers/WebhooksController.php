@@ -3,6 +3,7 @@
 namespace pickhero\commerce\controllers;
 
 use craft\commerce\elements\Order;
+use craft\commerce\elements\Variant;
 use craft\commerce\Plugin as CommercePlugin;
 use craft\web\Controller;
 use pickhero\commerce\CommercePickheroPlugin;
@@ -125,6 +126,7 @@ class WebhooksController extends Controller
             $data = $payload['data'] ?? [];
             $sku = $data['product_code'] ?? null;
             $newStock = $data['new_stock'] ?? null;
+            $reservedStock = (int) ($data['reserved_stock'] ?? 0);
 
             if (empty($sku)) {
                 $this->log->trace("Stock webhook without product_code received. Skipping.");
@@ -136,7 +138,12 @@ class WebhooksController extends Controller
                 return $this->asJson(['status' => 'OK']);
             }
 
-            $this->productSync->updateStock($sku, (int) $newStock);
+            $availableStock = (int) $newStock - $reservedStock;
+            $variant = $this->productSync->updateStock($sku, $availableStock);
+
+            if ($variant) {
+                $this->refreshBlitzCache($variant);
+            }
         } catch (HttpException $e) {
             $this->log->error("Stock webhook processing failed", $e);
             return $this->asJson(['status' => 'ERROR'])->setStatusCode($e->statusCode);
@@ -183,6 +190,24 @@ class WebhooksController extends Controller
             }
 
             $this->log->log("Order status updated to '{$order->orderStatusId}' for order '{$order->reference}'.");
+        }
+    }
+
+    /**
+     * Refresh Blitz cache for a variant's product if Blitz is installed
+     */
+    protected function refreshBlitzCache(Variant $variant): void
+    {
+        if (!\Craft::$app->getPlugins()->isPluginInstalled('blitz')) {
+            return;
+        }
+
+        $product = $variant->getOwner();
+
+        if ($product) {
+            \putyourlightson\blitz\Blitz::$plugin->refreshCache->addElement($product);
+            \putyourlightson\blitz\Blitz::$plugin->refreshCache->refresh();
+            $this->log->trace("Blitz cache refreshed for product '{$product->title}'.");
         }
     }
 

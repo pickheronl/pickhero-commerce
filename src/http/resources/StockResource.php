@@ -71,26 +71,38 @@ class StockResource extends ApiResource
     }
 
     /**
+     * List stock levels aggregated per product
+     *
+     * Returns available_stock (stock - reserved) per product.
+     *
+     * Available filters: id, external_id, product_type, product_code, product_codes, has_stock, min_quantity
+     */
+    public function listProducts(array $filters = [], ?string $sort = null, ?int $page = null): array
+    {
+        $params = $this->buildListParams($filters, $sort);
+        $params['page[size]'] = '100';
+        if ($page !== null) {
+            $params['page[number]'] = $page;
+        }
+
+        return $this->client->get('stock/products', $params);
+    }
+
+    /**
      * Get available stock for a product by product code (SKU)
-     * 
+     *
      * Returns the total available (non-reserved) stock across all locations
      */
     public function getAvailableStockByProductCode(string $productCode): int
     {
-        $result = $this->getByProductCode($productCode);
+        $result = $this->listProducts(['product_code' => $productCode]);
         $data = $result['data'] ?? [];
-        
+
         if (empty($data)) {
             return 0;
         }
-        
-        // Sum up quantities from all stock records
-        $total = 0;
-        foreach ($data as $stockRecord) {
-            $total += (int) ($stockRecord['quantity'] ?? 0);
-        }
-        
-        return $total;
+
+        return (int) ($data[0]['available_stock'] ?? 0);
     }
 }
 

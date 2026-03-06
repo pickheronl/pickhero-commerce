@@ -1,3 +1,8 @@
+## 1.2.7 - 2026-03-06
+
+### Changed
+- Use available stock (free stock) instead of technical stock for sync
+
 ## 1.2.6 - 2026-02-24
 
 ### Changed

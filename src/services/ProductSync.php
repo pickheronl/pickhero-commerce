@@ -38,20 +38,21 @@ class ProductSync extends Component
 
     /**
      * Update stock for a product by SKU
-     * 
+     *
      * @param string $sku Product SKU
      * @param int $stock New stock quantity
+     * @return Variant|null The variant that was updated, or null if not found
      * @throws \Throwable
      * @throws ElementNotFoundException
      * @throws Exception
      */
-    public function updateStock(string $sku, int $stock): void
+    public function updateStock(string $sku, int $stock): ?Variant
     {
         $variant = Variant::find()->sku($sku)->one();
 
         if (!$variant) {
             $this->log->trace("Variant '{$sku}' not found.");
-            return;
+            return null;
         }
 
         $inventory = Commerce::getInstance()->getInventory();
@@ -62,6 +63,8 @@ class ProductSync extends Component
         } else {
             $this->log->trace("Variant '{$sku}' stock remains unchanged: '{$stock}'");
         }
+
+        return $variant;
     }
 
     /**
